@@ -7,7 +7,7 @@ Roadmap
 -------
 The game is non-functioning yet and has the following roadmap:
 
-- [ ] Display empty board
+- [x] Display empty board
 - [ ] Add placing pieces
 - [ ] Detect a win
 - [ ] Enhance graphics
