@@ -15,13 +15,9 @@ namespace GlassTicTacToe
 
         private string getCell(int x, int y)
         {
-            return this[y % SIDE + x].Text;
+            return this[y * SIDE + x].Text;
         }
 
-        private void setCell(int x, int y, string value)
-        {
-            this[y % SIDE + x].Text = value;
-        }
 
         public Board()
         {
@@ -66,126 +62,30 @@ namespace GlassTicTacToe
 
         private GameState checkGameEnd()
         {
-            List<(int yStep, bool swapAxes)> winConditions = new List<(int yStep, bool swapAxes)>()
+            List<(int yStep, bool swapAxes)> winConditions = new List<(int, bool)>()
             {
+                (1, false),  // vertical lines
                 (1, true),  // horizontal lines
+                
+                // backslash-like diagonal lines
+                (1, false),
+                (1, true),
+                
+                // forward slash-like diagonal lines
+                (-1, false),
+                (-1, true),
             };
+
+            foreach (var (yStep, swapAxes) in winConditions)
+            {
+                var (found, winner) = checkLine(yStep, swapAxes);
+
+                if (found)
+                {
+                    return winner == "X" ? GameState.XWon : GameState.OWon;
+                }
+            }
             
-            
-            (bool found, GameState value) = checkLine();
-            if (!found)
-            {
-                return value;
-            }
-
-            // vertical lines
-            for (int x = 0; x < SIDE; x++)
-            {
-                int sameInRowCount = 1;
-                CellContent lastCell = CellContent.Empty;
-
-                for (int y = 0; y < SIDE; y++)
-                {
-                    if (lastCell != CellContent.Empty && board[y, x] == lastCell)
-                    {
-                        sameInRowCount++;
-
-                        if (sameInRowCount == WIN_LENGTH)
-                        {
-                            return lastCell == CellContent.X ? GameState.XWon : GameState.OWon;
-                        }
-                    }
-
-                    lastCell = board[y, x];
-                }
-            }
-
-            // forward slash-like diagonal lines
-            for (int x = WIN_LENGTH - 1; x < SIDE; x++)
-            {
-                int sameInRowCount = 1;
-                CellContent lastCell = CellContent.Empty;
-
-                for (int y = 0; y <= x; y++)
-                {
-                    if (lastCell != CellContent.Empty && board[y, x - y] == lastCell)
-                    {
-                        sameInRowCount++;
-
-                        if (sameInRowCount == WIN_LENGTH)
-                        {
-                            return lastCell == CellContent.X ? GameState.XWon : GameState.OWon;
-                        }
-                    }
-
-                    lastCell = board[y, x - y];
-                }
-            }
-
-            for (int y = 1; y < SIDE - WIN_LENGTH; y++)
-            {
-                int sameInRowCount = 1;
-                CellContent lastCell = CellContent.Empty;
-
-                for (int x = SIDE - 1; x <= y; x--)
-                {
-                    if (lastCell != CellContent.Empty && board[y, x] == lastCell)
-                    {
-                        sameInRowCount++;
-
-                        if (sameInRowCount == WIN_LENGTH)
-                        {
-                            return lastCell == CellContent.X ? GameState.XWon : GameState.OWon;
-                        }
-                    }
-
-                    lastCell = board[y, x];
-                }
-            }
-
-            // backslash-like diagonal lines
-            for (int x = SIDE - WIN_LENGTH; x >= 0; x--)
-            {
-                int sameInRowCount = 1;
-                CellContent lastCell = CellContent.Empty;
-
-                for (int y = 0; y < SIDE - x; y++)
-                {
-                    if (lastCell != CellContent.Empty && board[y, x + y] == lastCell)
-                    {
-                        sameInRowCount++;
-
-                        if (sameInRowCount == WIN_LENGTH)
-                        {
-                            return lastCell == CellContent.X ? GameState.XWon : GameState.OWon;
-                        }
-                    }
-
-                    lastCell = board[y, x + y];
-                }
-            }
-
-            for (int y = 1; y < SIDE - WIN_LENGTH; y++)
-            {
-                int sameInRowCount = 1;
-                CellContent lastCell = CellContent.Empty;
-
-                for (int x = 0; x <= SIDE - y; x++)
-                {
-                    if (lastCell != CellContent.Empty && board[y, x] == lastCell)
-                    {
-                        sameInRowCount++;
-
-                        if (sameInRowCount == WIN_LENGTH)
-                        {
-                            return lastCell == CellContent.X ? GameState.XWon : GameState.OWon;
-                        }
-                    }
-
-                    lastCell = board[y, x];
-                }
-            }
-
             if (emptyCellCount == 0)
             {
                 return GameState.Draw;
@@ -194,33 +94,42 @@ namespace GlassTicTacToe
             return GameState.On;
         }
 
-        private (bool found, string winner) checkLine(int yStep, bool swapAxes)
-        {
+        private (bool, string) checkLine(int yStep, bool swapAxes)
+        {// (-1, true) raises error for getCell
             for (int x = 0; x < SIDE; x++)
             {
                 int sameInRowCount = 1;
-                string lastCell = "";
+                string last = "";
 
-                int y0 = yStep == 1 ? 0 : x;
-                int y1 = yStep == 1 ? SIDE - x : 0;
+                int y0 = yStep == -1 ? x : 0;
 
-                for (int y = y0; y != y1 ; y += yStep)
+                // For orthogonal lines, make y1 = SIDE
+                int y1 = yStep == -1 ? 0 : SIDE - yStep * x;
+
+                for (int y = y0, xx = x; y != y1 ; y += yStep, xx++)
                 {
-                    if (lastCell.Length > 0 && getCell(x, y) == lastCell)
+                    string current = swapAxes ? getCell(y, xx) :
+                        getCell(xx, y);
+
+                    if (last.Length > 0 && current == last)
                     {
                         sameInRowCount++;
 
                         if (sameInRowCount == WIN_LENGTH)
                         {
-                            return (found: true, winner: lastCell);
+                            return (true, last);
                         }
                     }
+                    else
+                    {
+                        sameInRowCount = 1;
+                    }
 
-                    lastCell = getCell(x, y);
+                    last = current;
                 }
             }
 
-            return (found: false, value: default);
+            return (false, string.Empty);
         }
 
         private void restart(GameState gameState)
@@ -246,20 +155,9 @@ namespace GlassTicTacToe
 
         private void clean()
         {
-            foreach (var control in grid.Controls)
+            foreach (var label in this)
             {
-                if (control is Label label)
-                {
-                    label.Text = "";
-                }
-            }
-
-            for (int i = 0; i < SIDE; i++)
-            {
-                for (int j = 0; j < SIDE; j++)
-                {
-                    board[i, j] = CellContent.Empty;
-                }
+                label.Text = "";
             }
 
             emptyCellCount = SIDE * SIDE;
