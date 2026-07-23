@@ -1,7 +1,7 @@
 GlassTicTacToe Game
 ==============
 
-A 4x4 tic-tac-toe game for two players.
+A tic-tac-toe game for two players.
 
 Roadmap
 -------
